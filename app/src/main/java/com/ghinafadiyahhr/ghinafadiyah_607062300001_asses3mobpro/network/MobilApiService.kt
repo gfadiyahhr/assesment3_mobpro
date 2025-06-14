@@ -1,6 +1,5 @@
 package com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.network
 
-import android.media.Image
 import com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.model.Mobil
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory

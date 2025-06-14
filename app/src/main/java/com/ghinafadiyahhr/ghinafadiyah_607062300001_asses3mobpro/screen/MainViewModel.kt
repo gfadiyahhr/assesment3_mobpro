@@ -1,13 +1,18 @@
 package com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.screen
 
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.model.Mobil
 import com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.network.MobilApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainViewModel : ViewModel() {
+
+    var data = mutableStateOf(emptyList<Mobil>())
+        private set
 
     init {
         retrieveData()
@@ -16,8 +21,7 @@ class MainViewModel : ViewModel() {
     private fun retrieveData() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val result = MobilApi.service.getMobil()
-                Log.d("MainViewModel", "Success: $result")
+                data.value = MobilApi.service.getMobil()
             } catch (e: Exception) {
                 Log.d("MainViewModel", "Failure: ${e.message}")
             }
