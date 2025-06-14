@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -72,10 +73,10 @@ fun ScreenContent(modifier: Modifier = Modifier) {
 
 @Composable
 fun ListItem(mobil: Mobil) {
-    Box(
-        modifier = Modifier.padding(4.dp).border(1.dp, Color.Gray),
+    Box (
+        modifier = Modifier.padding(4.dp).border(0.5.dp, Color.Gray),
         contentAlignment = Alignment.BottomCenter
-    ){
+    ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(mobil.image)
@@ -83,13 +84,16 @@ fun ListItem(mobil: Mobil) {
                 .build(),
             contentDescription = stringResource(R.string.gambar, mobil.nama),
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxWidth().padding(4.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(4.dp)
+                .height(190.dp)
         )
         Column(
             modifier = Modifier.fillMaxWidth().padding(4.dp)
                 .background(Color(red = 0f, green = 0f, blue = 0f, alpha = 0.5f))
                 .padding(4.dp)
-        ){
+        ) {
             Text(
                 text = mobil.nama,
                 fontWeight = FontWeight.Bold,
@@ -98,12 +102,13 @@ fun ListItem(mobil: Mobil) {
             Text(
                 text = mobil.deskripsi,
                 fontStyle = FontStyle.Italic,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 color = Color.White
             )
         }
     }
 }
+
 
 @Preview(showBackground = true)
 @Composable
