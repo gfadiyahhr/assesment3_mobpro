@@ -32,3 +32,5 @@ object MobilApi{
         return "$BASE_URL$image.jpg"
     }
 }
+
+enum class ApiStatus { LOADING, SUCCESS }
