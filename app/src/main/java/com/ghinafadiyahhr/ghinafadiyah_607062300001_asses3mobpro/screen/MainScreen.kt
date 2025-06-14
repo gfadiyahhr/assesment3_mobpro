@@ -80,12 +80,18 @@ fun ListItem(mobil: Mobil) {
     ) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
-                .data(mobil.image)
+                .data(
+                    if (mobil.nama.contains("Ferrari", ignoreCase = true))
+                    "https://invalid-url.com/force-error.jpg"
+                    else
+                    mobil.image
+                )
                 .crossfade(true)
                 .build(),
             contentDescription = stringResource(R.string.gambar, mobil.nama),
             contentScale = ContentScale.Crop,
             placeholder = painterResource(id = R.drawable.loading_img),
+            error = painterResource(id = R.drawable.broken_img),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(4.dp)
