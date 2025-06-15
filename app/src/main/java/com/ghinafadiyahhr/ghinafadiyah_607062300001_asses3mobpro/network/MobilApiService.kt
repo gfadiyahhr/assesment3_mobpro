@@ -7,7 +7,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import retrofit2.http.GET
 
-private const val BASE_URL = "https://684d565e65ed08713915cdc0.mockapi.io/mobilf1/api/v1/"
+private const val BASE_URL = "https://apimobpromobil-production.up.railway.app/api/"
 
 private val moshi = Moshi.Builder()
     .add(KotlinJsonAdapterFactory())
@@ -19,7 +19,7 @@ private val retrofit = Retrofit.Builder()
     .build()
 
 interface MobilApiService {
-    @GET("merekmobil")
+    @GET("mobil")
     suspend fun getMobil(): List<Mobil>
 }
 
