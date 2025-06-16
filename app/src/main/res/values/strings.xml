@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Modul 2 - Build Your First App</string>
+    <string name="app_name">F1Garage</string>
     <string name="gambar">Gambar %1$s</string>
     <string name="error">Gagal memuat data.. Koneksi error.</string>
     <string name="try_again">Coba Lagi</string>
@@ -7,7 +7,8 @@
     <string name="tutup">Tutup</string>
     <string name="logout">Logout</string>
     <string name="tambah_mobil">Tambah mobil</string>
-    <string name="nama_latin">Nama latin</string>
+    <string name="nama">Nama</string>
+    <string name="deskripsi">Deskripsi</string>
     <string name="batal">Batal</string>
     <string name="simpan">Simpan</string>
 </resources>

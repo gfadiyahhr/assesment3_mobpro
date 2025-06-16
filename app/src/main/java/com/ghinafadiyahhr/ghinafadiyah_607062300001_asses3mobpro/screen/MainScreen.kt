@@ -7,6 +7,7 @@ import android.graphics.ImageDecoder
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -86,11 +87,14 @@ fun MainScreen(){
     val context = LocalContext.current
     val dataStore =UserDataStore(context)
     val user by dataStore.userFlow.collectAsState(User())
+
     var showDialog by remember { mutableStateOf(false) }
+    var showMobilDialog by remember { mutableStateOf(false) }
 
     var bitmap: Bitmap? by remember { mutableStateOf(null) }
     val launcher = rememberLauncherForActivityResult(CropImageContract()) {
         bitmap= getCroppedImage(context.contentResolver,it)
+        if (bitmap != null) showMobilDialog = true
     }
 
     Scaffold (
@@ -149,6 +153,15 @@ fun MainScreen(){
                 onDismissRequest = {showDialog = false}){
                 CoroutineScope(Dispatchers.IO).launch { signOut(context, dataStore) }
                 showDialog= false
+            }
+
+            if (showMobilDialog){
+                MobilDialog(
+                    bitmap = bitmap,
+                    onDismissRequest = { showMobilDialog = false }) { nama, deskripsi ->
+                    Log.d("TAMBAH", "$nama $deskripsi ditambahkan.")
+                    showMobilDialog = false
+                }
             }
         }
     }
