@@ -3,45 +3,52 @@ package com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.screen
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Card
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.R
-import com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.ui.theme.Ghinafadiyah_607062300001_asses3mobproTheme
+import com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.model.Mobil
+import com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.network.MobilApi
 
 @Composable
 fun MobilDialog(
     bitmap: Bitmap?,
+    mobil: Mobil? = null,
     onDismissRequest: () -> Unit,
-    onConfirmation: (String, String) -> Unit
+    onConfirmation: (String, String, String?) -> Unit,
+    onImageChangeRequest: () -> Unit
 ) {
-    var nama by remember { mutableStateOf("") }
-    var deskripsi by remember { mutableStateOf("") }
+    var nama by remember { mutableStateOf(mobil?.nama ?: "") }
+    var deskripsi by remember { mutableStateOf(mobil?.deskripsi ?: "") }
+    val context = LocalContext.current
 
-    Dialog(onDismissRequest = { onDismissRequest() }) {
+    // Fungsi untuk mendapatkan URL gambar yang benar
+    val imageUrl = remember(mobil?.image) {
+        if (mobil?.image?.startsWith("http", ignoreCase = true) == true) {
+            mobil.image
+        } else {
+            mobil?.image?.let { MobilApi.getMobilUrl(it) } ?: ""
+        }
+    }
+
+    Dialog(onDismissRequest = onDismissRequest) {
         Card(
             modifier = Modifier.padding(16.dp),
             shape = RoundedCornerShape(16.dp),
@@ -50,66 +57,61 @@ fun MobilDialog(
                 modifier = Modifier.padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Image(
-                    bitmap = bitmap!!.asImageBitmap(),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxWidth().aspectRatio(1f)
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clickable(onClick = onImageChangeRequest)
+                ) {
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = "Gambar Mobil",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        AsyncImage(
+                            model = ImageRequest.Builder(context)
+                                .data(imageUrl)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = "Gambar Mobil",
+                            modifier = Modifier.fillMaxSize(),
+                            placeholder = painterResource(R.drawable.loading_img),
+                            error = painterResource(R.drawable.broken_img)
+                        )
+                    }
+                }
+
                 OutlinedTextField(
                     value = nama,
                     onValueChange = { nama = it },
-                    label = { Text(text = stringResource(id = R.string.nama)) },
-                    maxLines = 1,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Words,
-                        imeAction = ImeAction.Next
-                    ),
-                    modifier = Modifier.padding(top = 8.dp)
+                    label = { Text("Nama Mobil") },
+                    modifier = Modifier.fillMaxWidth().padding(8.dp)
                 )
+
                 OutlinedTextField(
                     value = deskripsi,
                     onValueChange = { deskripsi = it },
-                    label = { Text(text = stringResource(id = R.string.deskripsi)) },
-                    maxLines = 1,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Sentences,
-                        imeAction = ImeAction.Done
-                    ),
-                    modifier = Modifier.padding(top = 8.dp)
+                    label = { Text("Deskripsi") },
+                    modifier = Modifier.fillMaxWidth().padding(8.dp)
                 )
-                Row (
-                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.Center
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    OutlinedButton(
-                        onClick = { onDismissRequest() },
-                        modifier = Modifier.padding(8.dp)
-                    ) {
-                        Text(text = stringResource(R.string.batal))
+                    Button(onClick = onDismissRequest) {
+                        Text("Batal")
                     }
-                    OutlinedButton(
-                        onClick = { onConfirmation(nama, deskripsi) },
-                        enabled = nama.isNotEmpty() && deskripsi.isNotEmpty(),
-                        modifier = Modifier.padding(8.dp)
+                    Button(
+                        onClick = { onConfirmation(nama, deskripsi, mobil?.id) },
+                        enabled = nama.isNotBlank() && deskripsi.isNotBlank()
                     ) {
-                        Text(text = stringResource(R.string.simpan))
+                        Text(if (mobil == null) "Simpan" else "Update")
                     }
                 }
             }
         }
-    }
-}
-
-
-@Preview(showBackground = true)
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
-@Composable
-fun AddDialogPreview() {
-    Ghinafadiyah_607062300001_asses3mobproTheme {
-        MobilDialog(
-            bitmap = null,
-            onDismissRequest = {},
-            onConfirmation = { _, _->}
-        )
     }
 }

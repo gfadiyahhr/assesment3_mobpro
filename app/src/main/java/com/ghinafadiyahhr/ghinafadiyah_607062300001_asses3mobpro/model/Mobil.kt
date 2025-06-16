@@ -4,5 +4,6 @@ data class Mobil(
     val id: String,
     val nama: String,
     val deskripsi: String,
-    val image: String
+    val image: String,
+    val Authorization: String?
 )

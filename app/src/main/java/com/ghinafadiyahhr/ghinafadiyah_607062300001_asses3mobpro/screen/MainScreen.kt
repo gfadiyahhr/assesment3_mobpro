@@ -11,6 +11,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,11 +20,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit // Import ikon Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,6 +41,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,6 +78,7 @@ import com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.R
 import com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.model.Mobil
 import com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.model.User
 import com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.network.ApiStatus
+import com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.network.MobilApi
 import com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.network.UserDataStore
 import com.ghinafadiyahhr.ghinafadiyah_607062300001_asses3mobpro.ui.theme.Ghinafadiyah_607062300001_asses3mobproTheme
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
@@ -88,8 +95,14 @@ fun MainScreen(){
     val dataStore =UserDataStore(context)
     val user by dataStore.userFlow.collectAsState(User())
 
+    val viewModel: MainViewModel = viewModel()
+    val errorMessage by viewModel.errorMessage
+
     var showDialog by remember { mutableStateOf(false) }
     var showMobilDialog by remember { mutableStateOf(false) }
+    var showHapusDialog by remember { mutableStateOf(false) }
+    var mobilToDelete by remember { mutableStateOf<Mobil?>(null) }
+    var mobilToEdit by remember { mutableStateOf<Mobil?>(null) } // State untuk mobil yang akan diedit
 
     var bitmap: Bitmap? by remember { mutableStateOf(null) }
     val launcher = rememberLauncherForActivityResult(CropImageContract()) {
@@ -128,6 +141,7 @@ fun MainScreen(){
 
         floatingActionButton = {
             FloatingActionButton(onClick = {
+                mobilToEdit = null // Pastikan null untuk menambah data baru
                 val options = CropImageContractOptions(
                     null, CropImageOptions(
                         imageSourceIncludeGallery = false,
@@ -145,7 +159,22 @@ fun MainScreen(){
         }
 
     ){ innerPadding ->
-        ScreenContent(Modifier.padding(innerPadding))
+        ScreenContent(
+            viewModel = viewModel,
+            userId = user.email,
+            currentUserId = user.email,
+            onDeleteClick = { mobil ->
+                mobilToDelete = mobil
+                showHapusDialog = true
+            },
+            onEditClick = { mobil -> // Implementasi onEditClick
+                mobilToEdit = mobil
+                showMobilDialog = true
+                // Jika ingin menampilkan gambar lama saat edit, Anda perlu logika untuk memuat bitmap dari URL mobil.image
+                // Untuk contoh ini, kami hanya membiarkan bitmap null jika tidak ada gambar baru yang dipilih.
+            },
+            modifier = Modifier.padding(innerPadding)
+        )
 
         if (showDialog){
             ProfilDialog(
@@ -154,24 +183,91 @@ fun MainScreen(){
                 CoroutineScope(Dispatchers.IO).launch { signOut(context, dataStore) }
                 showDialog= false
             }
+        }
 
-            if (showMobilDialog){
-                MobilDialog(
-                    bitmap = bitmap,
-                    onDismissRequest = { showMobilDialog = false }) { nama, deskripsi ->
-                    Log.d("TAMBAH", "$nama $deskripsi ditambahkan.")
+        // Dialog untuk menambah/mengedit mobil
+        if (showMobilDialog)if (showMobilDialog) {
+            MobilDialog(
+                bitmap = bitmap,
+                mobil = mobilToEdit,
+                onDismissRequest = {
                     showMobilDialog = false
+                    mobilToEdit = null
+                    bitmap = null
+                },
+                onConfirmation = { nama, deskripsi, id ->
+                    if (id == null) {
+                        // Mode Tambah
+                        bitmap?.let {
+                            viewModel.saveData(user.email, nama, deskripsi, it)
+                        }
+                    } else {
+                        // Mode Update
+                        if (bitmap != null) {
+                            // Jika ada gambar baru, upload dengan gambar
+                            viewModel.updateData(id,user.email,  nama, deskripsi, bitmap!!)
+                        } else {
+                            // Jika tidak ada gambar baru, update tanpa gambar
+//                            viewModel.updateDataWithoutImage(user.email, id, nama, deskripsi)
+                        }
+                    }
+                    showMobilDialog = false
+                    mobilToEdit = null
+                    bitmap = null
+                },
+                onImageChangeRequest = {
+                    // Launch image picker/camera when image is clicked
+                    val options = CropImageContractOptions(
+                        null,
+                        CropImageOptions(
+                            imageSourceIncludeGallery = true,
+                            imageSourceIncludeCamera = true,
+                            fixAspectRatio = true
+                        )
+                    )
+                    launcher.launch(options)
                 }
-            }
+            )
+        }
+
+        if (showHapusDialog) {
+            HapusDialog(
+                onDismissRequest = {
+                    showHapusDialog = false
+                    mobilToDelete = null
+                },
+                onConfirmation = {
+                    mobilToDelete?.let { mobil ->
+                        viewModel.deletaData(user.email, mobil.id)
+                    }
+                    showHapusDialog = false
+                    mobilToDelete = null
+                }
+            )
+        }
+
+        if (errorMessage != null) {
+            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+            viewModel.clearMessage()
         }
     }
 }
 
 @Composable
-fun ScreenContent(modifier: Modifier = Modifier) {
-    val viewModel: MainViewModel = viewModel()
+fun ScreenContent(
+    viewModel: MainViewModel,
+    userId: String,
+    currentUserId: String,
+    onDeleteClick: (Mobil) -> Unit,
+    onEditClick: (Mobil) -> Unit, // Callback baru untuk edit
+    modifier: Modifier = Modifier
+) {
     val data by viewModel.data
     val status by viewModel.status.collectAsState()
+
+    LaunchedEffect(userId) {
+        viewModel.retrieveData(userId)
+    }
 
     when (status) {
         ApiStatus.LOADING -> {
@@ -187,8 +283,18 @@ fun ScreenContent(modifier: Modifier = Modifier) {
             LazyVerticalGrid(
                 modifier = modifier.fillMaxSize().padding(4.dp),
                 columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(bottom = 80.dp)
             ) {
-                items(data) { ListItem(mobil = it) }
+                items(data) { mobil ->
+                    ListItem(
+                        mobil = mobil,
+                        isOwner = mobil.Authorization == currentUserId && currentUserId.isNotEmpty(),
+                        onDeleteClick = { onDeleteClick(mobil) },
+                        onEditClick = { onEditClick(mobil) } // Kirim mobil ke callback edit
+                    )
+
+                    Log.d("DEBUG_MOBIL", "Mobil: ${mobil.nama}, MobilUserId: '${mobil.Authorization}', CurrentUserId: '$currentUserId', IsOwner: ${mobil.Authorization == currentUserId && currentUserId.isNotEmpty()}")
+                }
             }
         }
 
@@ -200,7 +306,7 @@ fun ScreenContent(modifier: Modifier = Modifier) {
             ){
                 Text(text = stringResource(id = R.string.error))
                 Button(
-                    onClick = { viewModel.retrieveData() },
+                    onClick = { viewModel.retrieveData(userId) },
                     modifier = Modifier.padding(top = 16.dp),
                     contentPadding = PaddingValues(horizontal = 32.dp, vertical = 16.dp)
                 ) {
@@ -212,7 +318,12 @@ fun ScreenContent(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ListItem(mobil: Mobil) {
+fun ListItem(
+    mobil: Mobil,
+    isOwner: Boolean,
+    onDeleteClick: () -> Unit,
+    onEditClick: () -> Unit // Callback baru untuk edit
+) {
     Box (
         modifier = Modifier.padding(4.dp).border(0.5.dp, Color.Gray),
         contentAlignment = Alignment.BottomCenter
@@ -220,10 +331,11 @@ fun ListItem(mobil: Mobil) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(
-                    if (mobil.nama.contains("Ferrari", ignoreCase = true))
-                    "https://invalid-url.com/force-error.jpg"
-                    else
-                    mobil.image
+                    if (mobil.image.startsWith("http", ignoreCase = true)) {
+                        mobil.image
+                    } else {
+                        MobilApi.getMobilUrl(mobil.image)
+                    }
                 )
                 .crossfade(true)
                 .build(),
@@ -231,11 +343,56 @@ fun ListItem(mobil: Mobil) {
             contentScale = ContentScale.Crop,
             placeholder = painterResource(id = R.drawable.loading_img),
             error = painterResource(id = R.drawable.broken_img),
-            modifier = Modifier
-                .fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
                 .padding(4.dp)
                 .height(190.dp)
         )
+
+        // Tombol hapus
+        if (isOwner) { // Hanya tampilkan jika pemilik
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd) // Posisi di kanan bawah
+                    .padding(8.dp)
+                    .size(32.dp)
+                    .background(
+                        Color.White.copy(alpha = 0.9f),
+                        shape = CircleShape
+                    )
+                    .clickable { onDeleteClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Hapus",
+                    tint = Color.Red,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            // Tombol edit
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd) // Posisi di kanan atas
+                    .padding(8.dp)
+                    .size(32.dp)
+                    .background(
+                        Color.White.copy(alpha = 0.9f),
+                        shape = CircleShape
+                    )
+                    .clickable { onEditClick() }, // Tambahkan clickable untuk edit
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit, // Ikon edit
+                    contentDescription = "Edit",
+                    tint = MaterialTheme.colorScheme.primary, // Warna ikon edit
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+
         Column(
             modifier = Modifier.fillMaxWidth().padding(4.dp)
                 .background(Color(red = 0f, green = 0f, blue = 0f, alpha = 0.5f))
@@ -274,6 +431,8 @@ private suspend fun signIn(context: Context, dataStore: UserDataStore){
         Log.e("SIGN-IN", "Error: ${e.errorMessage}")
     }
 }
+
+
 
 private suspend fun handleSignIn(
     result: GetCredentialResponse,

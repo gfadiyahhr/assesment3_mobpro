@@ -11,4 +11,6 @@
     <string name="deskripsi">Deskripsi</string>
     <string name="batal">Batal</string>
     <string name="simpan">Simpan</string>
+    <string name="update">Update</string>
+    <string name="select_image">pilih Image</string>
 </resources>
