@@ -6,4 +6,8 @@
     <string name="profil">Profil</string>
     <string name="tutup">Tutup</string>
     <string name="logout">Logout</string>
+    <string name="tambah_mobil">Tambah mobil</string>
+    <string name="nama_latin">Nama latin</string>
+    <string name="batal">Batal</string>
+    <string name="simpan">Simpan</string>
 </resources>
